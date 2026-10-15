@@ -1,0 +1,39 @@
+# Local dev infrastructure: `docker compose up -d`
+
+services:
+  falkordb:
+    image: falkordb/falkordb:v4.22.1
+    container_name: sitehive-falkordb
+    restart: unless-stopped
+    ports:
+      - "${FALKORDB_PORT:-6379}:6379"      # graph database (Redis protocol)
+      - "${FALKORDB_UI_PORT:-3000}:3000"   # FalkorDB browser UI
+    volumes:
+      - falkordata:/var/lib/falkordb/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: sitehive-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sitehive}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sitehive}
+      POSTGRES_DB: ${POSTGRES_DB:-sitehive}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
+  falkordata:
